@@ -1,0 +1,60 @@
+cd ~/syzygia-mirror
+
+# .github/workflows dizinini oluştur
+mkdir -p .github/workflows
+
+# deploy.yml dosyasını oluştur
+cat > .github/workflows/deploy.yml << 'EOL'
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create package database
+        run: |
+          mkdir -p public/core
+          cd public/core
+          # Boş veritabanı oluştur
+          tar -czf syzygia.db.tar.gz --files-from /dev/null
+          tar -czf syzygia.files.tar.gz --files-from /dev/null
+          ln -sf syzygia.db.tar.gz syzygia.db
+          ln -sf syzygia.files.tar.gz syzygia.files
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+EOL
+
+# Değişiklikleri GitHub'a gönder
+git add .
+git commit -m "GitHub Actions iş akışı eklendi"
+git push
